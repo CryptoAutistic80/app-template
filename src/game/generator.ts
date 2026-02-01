@@ -1,4 +1,4 @@
-import { GeneratedRoom, Laser, Loot, Mode, RunLayout, RoomTemplate, TripZone, Vec2, Drone } from './types';
+import { Difficulty, GeneratedRoom, Laser, Loot, Mode, RunLayout, RoomTemplate, TripZone, Vec2, Drone } from './types';
 import { templates, ROOM_H, ROOM_W } from './templates';
 import { TUNING } from './tuning';
 import { RNG, createRng, pickWeighted } from './rng';
@@ -179,7 +179,7 @@ const spawnTripZones = (roomId: string, areas: { x: number; y: number; w: number
     alarmBurst: TUNING.danger.alarm.tripZoneBurst * difficulty,
   }));
 
-const instantiateRoom = (template: RoomTemplate, index: number, rng: RNG): GeneratedRoom => {
+const instantiateRoom = (template: RoomTemplate, index: number, rng: RNG, runDifficultyMul: number): GeneratedRoom => {
   const offset = { x: 0, y: index * ROOM_H };
   const roomId = `${template.id}-${index}`;
   const lasers: Laser[] = [];
@@ -187,7 +187,8 @@ const instantiateRoom = (template: RoomTemplate, index: number, rng: RNG): Gener
   const loot: Loot[] = [];
   const tripZones: TripZone[] = [];
   const vaultDoors: { rect: { x: number; y: number; w: number; h: number }; keyId: string; opened: boolean; rewardTable?: string }[] = [];
-  const difficulty = 1 + index * 0.08;
+  const roomDifficulty = Math.min(1 + index * 0.05, 1.3);
+  const difficulty = roomDifficulty * runDifficultyMul;
 
   template.spawners.forEach((spawner) => {
     if (spawner.type === 'LOOT_FIELD') {
@@ -276,10 +277,11 @@ const injectKeyLoot = (rooms: GeneratedRoom[], rng: RNG) => {
   targetRoom.loot.push(keyLoot);
 };
 
-export const generateRunLayout = (seed: number, mode: Mode): RunLayout => {
+export const generateRunLayout = (seed: number, mode: Mode, difficulty: Difficulty): RunLayout => {
   const rng = createRng(seed);
   const sequence = buildSequence(mode, rng);
-  const rooms = sequence.map((tag, index) => instantiateRoom(pickTemplate(tag, rng), index, rng));
+  const runDifficultyMul = difficulty === 'CHILL' ? 0.85 : 1.0;
+  const rooms = sequence.map((tag, index) => instantiateRoom(pickTemplate(tag, rng), index, rng, runDifficultyMul));
 
   injectKeyLoot(rooms, rng);
 

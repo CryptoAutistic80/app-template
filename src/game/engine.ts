@@ -2,7 +2,20 @@ import { distancePointToSegment, pointInRect, resolveCircleRect } from './collis
 import { clamp, moveTowards, vecDistance, vecNormalize } from './math';
 import { generateRunLayout } from './generator';
 import { TUNING } from './tuning';
-import { EndReason, Laser, Loot, Mode, Rect, RunLayout, RunStats, TripZone, Vec2, PlayerState, Drone } from './types';
+import {
+  Difficulty,
+  EndReason,
+  Laser,
+  Loot,
+  Mode,
+  Rect,
+  RunLayout,
+  RunStats,
+  TripZone,
+  Vec2,
+  PlayerState,
+  Drone,
+} from './types';
 import { createRng, seedFromUtcDate } from './rng';
 
 export interface UpgradeEffects {
@@ -45,6 +58,7 @@ export interface RunConfig {
   mode: Mode;
   seed?: number;
   upgrades?: Record<string, number>;
+  difficulty?: Difficulty;
 }
 
 const TAU = Math.PI * 2;
@@ -153,13 +167,13 @@ const flattenLayout = (layout: RunLayout) => {
   return { lasers, drones, loot, tripZones, vaultDoors, walls };
 };
 
-export const createRun = ({ mode, seed, upgrades }: RunConfig): GameState => {
+export const createRun = ({ mode, seed, upgrades, difficulty = 'PRO' }: RunConfig): GameState => {
   const resolvedSeed =
     seed ??
     (mode === 'DAILY'
       ? seedFromUtcDate(new Date())
       : Math.floor(Date.now() % 2147483647));
-  const layout = generateRunLayout(resolvedSeed, mode);
+  const layout = generateRunLayout(resolvedSeed, mode, difficulty);
   const { lasers, drones, loot, tripZones, vaultDoors, walls } = flattenLayout(layout);
   const startPos = layout.rooms[0]?.spawnPoints?.[0] ?? { x: ROOM_CENTER.x, y: ROOM_CENTER.y };
   const upgradeEffects = buildUpgradeEffects(upgrades);

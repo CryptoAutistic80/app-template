@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Difficulty } from '../types';
 import { TUNING } from '../tuning';
 
 export interface GameMeta {
@@ -6,6 +8,8 @@ export interface GameMeta {
   shards: number;
   tickets: number;
   ticketCap: number;
+  hasWonRun: boolean;
+  difficulty: Difficulty;
   upgrades: Record<string, number>;
   cosmetics: {
     paletteId: string;
@@ -23,15 +27,20 @@ interface MetaContextValue {
   buyUpgrade: (id: keyof typeof TUNING.upgrades.list) => boolean;
   setPalette: (id: string) => void;
   setTrail: (id: string) => void;
+  markWonRun: () => void;
+  setDifficulty: (difficulty: Difficulty) => void;
 }
 
 const MetaContext = createContext<MetaContextValue | null>(null);
+const META_STORAGE_KEY = 'minute-heist-meta-v1';
 
 const createDefaultMeta = (): GameMeta => ({
   credits: 0,
   shards: 0,
   tickets: TUNING.economy.tickets.capBase,
   ticketCap: TUNING.economy.tickets.capBase,
+  hasWonRun: false,
+  difficulty: 'PRO',
   upgrades: {},
   cosmetics: {
     paletteId: TUNING.cosmetics.palettes[0].id,
@@ -41,6 +50,23 @@ const createDefaultMeta = (): GameMeta => ({
   nextTicketAt: Date.now() + TUNING.economy.tickets.refillMinutesPerTicket * 60 * 1000,
 });
 
+const hydrateMeta = (stored: Partial<GameMeta> | null): GameMeta => {
+  const defaults = createDefaultMeta();
+  if (!stored) {
+    return defaults;
+  }
+  return {
+    ...defaults,
+    ...stored,
+    upgrades: { ...defaults.upgrades, ...stored.upgrades },
+    cosmetics: {
+      ...defaults.cosmetics,
+      ...stored.cosmetics,
+      owned: stored.cosmetics?.owned ?? defaults.cosmetics.owned,
+    },
+  };
+};
+
 export const getUpgradeCost = (id: keyof typeof TUNING.upgrades.list, level: number) => {
   const upgrade = TUNING.upgrades.list[id];
   return Math.floor(upgrade.costBase * Math.pow(upgrade.costMul, level));
@@ -48,6 +74,33 @@ export const getUpgradeCost = (id: keyof typeof TUNING.upgrades.list, level: num
 
 export const MetaProvider = ({ children }: { children: React.ReactNode }) => {
   const [meta, setMeta] = useState<GameMeta>(() => createDefaultMeta());
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    const hydrate = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(META_STORAGE_KEY);
+        if (!alive) {
+          return;
+        }
+        if (stored) {
+          const parsed = JSON.parse(stored) as GameMeta;
+          setMeta(hydrateMeta(parsed));
+        }
+      } catch (error) {
+        console.warn('Failed to load meta', error);
+      } finally {
+        if (alive) {
+          setHydrated(true);
+        }
+      }
+    };
+    hydrate();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -67,6 +120,15 @@ export const MetaProvider = ({ children }: { children: React.ReactNode }) => {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+    AsyncStorage.setItem(META_STORAGE_KEY, JSON.stringify(meta)).catch((error) => {
+      console.warn('Failed to save meta', error);
+    });
+  }, [meta, hydrated]);
 
   const spendTickets = (mode: keyof typeof TUNING.economy.tickets.runCost) => {
     const cost = TUNING.economy.tickets.runCost[mode];
@@ -138,8 +200,16 @@ export const MetaProvider = ({ children }: { children: React.ReactNode }) => {
     }));
   };
 
+  const markWonRun = () => {
+    setMeta((current) => (current.hasWonRun ? current : { ...current, hasWonRun: true }));
+  };
+
+  const setDifficulty = (difficulty: Difficulty) => {
+    setMeta((current) => ({ ...current, difficulty }));
+  };
+
   const value = useMemo(
-    () => ({ meta, spendTickets, grantTickets, earnRunRewards, buyUpgrade, setPalette, setTrail }),
+    () => ({ meta, spendTickets, grantTickets, earnRunRewards, buyUpgrade, setPalette, setTrail, markWonRun, setDifficulty }),
     [meta],
   );
 

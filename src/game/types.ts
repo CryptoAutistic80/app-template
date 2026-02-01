@@ -1,6 +1,7 @@
 export type Seed = number;
 
 export type Mode = 'NORMAL' | 'DAILY' | 'RISK';
+export type Difficulty = 'CHILL' | 'PRO';
 export type EndReason = 'TIME' | 'LASER' | 'DRONE' | 'ALARM' | 'QUIT';
 
 export interface Vec2 {

@@ -46,9 +46,9 @@ export const TUNING = {
       decayPerSec: 3.0,
       levels: [
         { at: 0, laserSpeedMul: 1.0, droneSpeedMul: 1.0, lootValueMul: 1.0 },
-        { at: 25, laserSpeedMul: 1.08, droneSpeedMul: 1.06, lootValueMul: 1.1 },
-        { at: 50, laserSpeedMul: 1.16, droneSpeedMul: 1.12, lootValueMul: 1.22 },
-        { at: 75, laserSpeedMul: 1.25, droneSpeedMul: 1.2, lootValueMul: 1.38 },
+        { at: 25, laserSpeedMul: 1.04, droneSpeedMul: 1.04, lootValueMul: 1.1 },
+        { at: 50, laserSpeedMul: 1.08, droneSpeedMul: 1.08, lootValueMul: 1.22 },
+        { at: 75, laserSpeedMul: 1.12, droneSpeedMul: 1.12, lootValueMul: 1.38 },
       ],
       cursedStackAlarmAdd: 4.5,
       tripZoneBurst: 18,
@@ -57,11 +57,11 @@ export const TUNING = {
 
   hazards: {
     lasers: {
-      thickness: 7,
+      thickness: 6,
       telegraphOpacity: 0.35,
-      rotator: { angVelMin: 0.9, angVelMax: 1.8, lengthMin: 140, lengthMax: 240 },
-      sweeper: { sweepSpan: 220, speedMin: 150, speedMax: 260 },
-      blinkGate: { period: 2.2, onFor: 0.9, telegraph: 0.35 },
+      rotator: { angVelMin: 0.55, angVelMax: 1.2, lengthMin: 140, lengthMax: 240 },
+      sweeper: { sweepSpan: 200, speedMin: 70, speedMax: 130 },
+      blinkGate: { period: 2.6, onFor: 0.85, telegraph: 0.55 },
     },
     drones: {
       radius: 12,
